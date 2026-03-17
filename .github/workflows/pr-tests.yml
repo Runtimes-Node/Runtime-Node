@@ -10,9 +10,8 @@ on:
   pull_request:
     branches:
       - "main"
-      - "develop"
+      - "develop*"
       - "maintenance/v*"
-      - "develop-v*"
 
 # # I made sure that more than one workflow does not run for the same PR Tests.
 concurrency:
