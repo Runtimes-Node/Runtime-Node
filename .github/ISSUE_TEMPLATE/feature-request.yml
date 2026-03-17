@@ -1,0 +1,53 @@
+name: Feature Request
+description: Propose a new capability or component for the image.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before opening a feature request**, keep in mind the core constraint of this project: every addition to the image must be strictly necessary for Node.js to function correctly at runtime. Additions that are convenient but not required will not be accepted.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of what you are proposing and why it is needed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: |
+        Explain why this addition is strictly necessary for Node.js to function correctly at runtime.
+        What breaks or fails without it? Include any relevant evidence (error messages, reproduction steps, references).
+    validations:
+      required: true
+
+  - type: textarea
+    id: distroless
+    attributes:
+      label: Distroless Impact
+      description: |
+        Confirm that this addition does not introduce a shell, package manager, or OS utility into the final image.
+        Describe any impact on the distroless guarantee and image size.
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Proposed Implementation
+      description: If you have a specific implementation in mind (e.g. a Dockerfile change), include it here.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant context, references, or links.
+    validations:
+      required: false
