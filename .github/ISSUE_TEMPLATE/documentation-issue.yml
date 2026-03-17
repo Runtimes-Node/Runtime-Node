@@ -1,0 +1,68 @@
+name: Documentation Issue
+description: Report a typo, outdated content, broken link, or incorrect example in the project documentation.
+title: "docs: "
+labels: ["docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to report an issue with the project documentation — `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, or `CODE_OF_CONDUCT.md`. For issues with the published image itself, use the **Bug Report** template instead.
+
+  - type: checkboxes
+    id: file
+    attributes:
+      label: Affected File
+      description: Which file contains the issue?
+      options:
+        - label: README.md
+        - label: CONTRIBUTING.md
+        - label: SECURITY.md
+        - label: CODE_OF_CONDUCT.md
+        - label: Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: issue_type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - label: Typo or grammar error
+        - label: Outdated version reference
+        - label: Incorrect or misleading content
+        - label: Broken link
+        - label: Incorrect code example
+        - label: Missing information
+        - label: Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Where exactly is the issue? Include the section heading and a quote of the affected line or passage.
+      placeholder: |
+        Section: "Key Features"
+        Current text: "Node.js Version | `25.7.0`"
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Correct Content
+      description: What should it say instead?
+      placeholder: |
+        "Node.js Version | `25.8.0`"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant context or references.
+    validations:
+      required: false

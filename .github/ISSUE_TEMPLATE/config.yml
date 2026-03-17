@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a Security Vulnerability
+    url: https://github.com/Runtimes-Node/Runtime-Node/security/advisories/new
+    about: "Please do NOT open public issues for security vulnerabilities. Report them privately using GitHub Security Advisories."

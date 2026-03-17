@@ -1,0 +1,52 @@
+name: Node.js Version Bump
+description: Request an upgrade to a newer Node.js version.
+title: "chore: upgrade Node.js to "
+labels: ["chore"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to request a Node.js version upgrade. Version bumps always result in at minimum a **major** semver release (e.g. `v2.2.0-25.8.0` → `v3.0.0-26.0.0` for a major Node.js release, or a minor bump for patch/minor Node.js releases within the same major).
+
+  - type: input
+    id: current
+    attributes:
+      label: Current Node.js Version
+      description: The Node.js version currently bundled in the latest release.
+      placeholder: "25.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: Requested Node.js Version
+      description: The Node.js version you are requesting.
+      placeholder: "25.9.0"
+    validations:
+      required: true
+
+  - type: input
+    id: alpine_tag
+    attributes:
+      label: Alpine Image Tag
+      description: Confirm the exact official Alpine image tag for this version (e.g. `node:25.9.0-alpine3.22`).
+      placeholder: "node:25.9.0-alpine3.22"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for Upgrade
+      description: Why is this upgrade needed? Include any relevant changelogs, security fixes, or improvements in the new version.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant context.
+    validations:
+      required: false

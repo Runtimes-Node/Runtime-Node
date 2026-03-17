@@ -1,0 +1,54 @@
+name: New Platform / Architecture Request
+description: Request support for a new build target platform or architecture.
+title: "feat: add support for "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to request support for a new build platform or architecture (e.g. `linux/arm/v7`). This is distinct from a Feature Request — it does not change the image contents, only the build matrix and CI/CD pipeline.
+
+        Before submitting, please verify both requirements below. Requests that cannot satisfy both will not be accepted.
+
+  - type: input
+    id: platform
+    attributes:
+      label: Requested Platform
+      description: The exact Docker platform string for the target (e.g. `linux/arm/v7`).
+      placeholder: "linux/arm/v7"
+    validations:
+      required: true
+
+  - type: input
+    id: node_image
+    attributes:
+      label: Official Alpine Node.js Image Tag
+      description: Confirm an official Alpine-based Node.js image exists for this platform (e.g. `node:25.8.0-alpine3.22`). Paste the Docker Hub manifest URL or `docker manifest inspect` output confirming the platform is present.
+      placeholder: "https://hub.docker.com/layers/library/node/25.8.0-alpine3.22/images/..."
+    validations:
+      required: true
+
+  - type: input
+    id: qemu
+    attributes:
+      label: QEMU Support
+      description: Confirm QEMU supports this platform for cross-compilation in GitHub Actions. Paste any relevant reference.
+      placeholder: "https://github.com/docker/setup-qemu-action"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Use Case
+      description: Describe the hardware or deployment environment that requires this platform. Why is this target needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant context, benchmarks, or references.
+    validations:
+      required: false

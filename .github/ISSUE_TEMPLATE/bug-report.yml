@@ -1,0 +1,89 @@
+name: Bug Report
+description: Report something in the published image that behaves incorrectly.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before opening a bug report**, confirm this is an issue with the Runtime Node image itself — not with your own application code running on top of it.
+
+        **Do not use this form to report security vulnerabilities.** See [SECURITY.md](../SECURITY.md) for the correct disclosure process.
+
+  - type: input
+    id: version
+    attributes:
+      label: Affected Version Tag
+      description: The exact image tag you are using (e.g. `v2.2.0-25.8.0` or `latest`).
+      placeholder: "v2.2.0-25.8.0"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: registry
+    attributes:
+      label: Registry
+      description: Which registry are you pulling from?
+      options:
+        - label: Docker Hub Registry
+        - label: GitHub Container Registry (GHCR)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: platform
+    attributes:
+      label: Platform
+      description: Which platform are you running the image on?
+      options:
+        - label: linux/amd64
+        - label: linux/arm64
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of what is wrong and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact commands or Dockerfile snippet needed to reproduce the issue.
+      placeholder: |
+        Example (command):
+        docker run --rm --entrypoint /usr/local/bin/node runtimenode/runtime-node:v2.2.0-25.8.0 --version
+
+        Example (Dockerfile):
+        FROM runtimenode/runtime-node:v2.2.0-25.8.0
+        RUN node --version
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behaviour
+      description: What actually happened, including any error output.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behaviour
+      description: What you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any scan output, logs, or other relevant information.
+    validations:
+      required: false
