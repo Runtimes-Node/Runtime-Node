@@ -1,0 +1,156 @@
+# Runtime Node
+
+# .github/workflows/pr-tests.yml
+
+# I name the workflow "PR Tests".
+name: PR Tests
+
+# I made the trigger for this workflow to be a new PR with the target branch being either main or develop.
+on:
+  pull_request:
+    branches:
+      - "main"
+      - "develop*"
+      - "maintenance/v*"
+
+# # I made sure that more than one workflow does not run for the same PR Tests.
+concurrency:
+  group: pr-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# I define a job called "lint" that will run on the 24.04 version of Ubuntu and "build-and-test" that will also run on the 24.04 version of Ubuntu. This job will contain the step to test the Dockerfile.
+jobs:
+  lint:
+    name: Lint Dockerfile
+    runs-on: ubuntu-24.04
+    steps:
+      # First step is to check out the code from the repository to the PR's base branch using the actions/checkout action. This allows the workflow to access the code and test the Dockerfile.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Second step is to use hadolint to check and test the Dockerfile. 
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-24.04
+    needs: lint
+
+    # Matrix strategy to build and test across multiple CPU architectures. If any platform job fails, remaining matrix jobs are cancelled (fail-fast).
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+
+    steps:
+      # First step is to check out the code from the repository to the PR's base branch using the actions/checkout action. This allows the workflow to access the code and test the Dockerfile.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Second step is to set up the Qemu for the Multi-Platform Build of the image.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Third step is to set up the Buildx for the build of the image.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Fourth step is to build the image.
+      - name: Build Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: false
+          load: true
+          tags: runtime-node:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,scope=${{ matrix.platform }},mode=max
+
+
+      # Fifth step is to test if there is node included or not.
+      - name: Smoke Test — node --version
+        run: |
+          OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
+            --entrypoint /usr/local/bin/node \
+            runtime-node:pr-${{ github.event.pull_request.number }} \
+            --version)
+
+          echo "Node.js version reported: $OUTPUT"
+
+          if [[ "$OUTPUT" != v* ]]; then
+            echo "❌ node --version did not return a valid version string."
+            exit 1
+          fi
+
+          echo "✅ Node.js binary is functional."
+
+      # Sixth step is to test if there is a shell or not.
+      - name: Integrity Test — no shell present
+        run: |
+          if docker run --rm --platform ${{ matrix.platform }} \
+              --entrypoint /bin/sh \
+              runtime-node:pr-${{ github.event.pull_request.number }} \
+              -c "echo shell_found" 2>/dev/null; then
+            echo "❌ Shell was found inside the image. The distroless guarantee is broken."
+            exit 1
+          fi
+
+          echo "✅ No shell found. Image is distroless."
+
+      # Seventh step is to test if there is a package manager or not.
+      - name: Integrity Test — no package manager present
+        run: |
+          for bin in /usr/bin/apk /usr/bin/apt /usr/bin/apt-get; do
+            if docker run --rm --platform ${{ matrix.platform }} \
+                --entrypoint "$bin" \
+                runtime-node:pr-${{ github.event.pull_request.number }} \
+                --version 2>/dev/null; then
+              echo "❌ Package manager found at $bin. The distroless guarantee is broken."
+              exit 1
+            fi
+          done
+
+          echo "✅ No package manager found. Image is clean."
+
+      # Eighth step is to test if the NODE_ENV variable is set properly.
+      - name: Integrity Test — NODE_ENV is production
+        run: |
+          OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
+            --entrypoint /usr/local/bin/node \
+            runtime-node:pr-${{ github.event.pull_request.number }} \
+            -e "process.stdout.write(process.env.NODE_ENV || '')")
+
+          echo "NODE_ENV reported: $OUTPUT"
+
+          if [[ "$OUTPUT" != "production" ]]; then
+            echo "❌ NODE_ENV is not set to 'production'. Got: '$OUTPUT'"
+            exit 1
+          fi
+
+          echo "✅ NODE_ENV is correctly set to 'production'."
+      - name: Integrity Test - TZ is UTC
+        run: |
+          OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
+            --entrypoint /usr/local/bin/node \
+            runtime-node:pr-${{ github.event.pull_request.number }} \
+            -e "process.stdout.write(process.env.TZ || '')")
+
+          echo "NODE_ENV reported: $OUTPUT"
+
+          if [[ "$OUTPUT" != "UTC" ]]; then
+            echo "❌ TZ is not set to 'UTC'. Got: '$OUTPUT'"
+            exit 1
+          fi
+
+          echo "✅ TZ is correctly set to 'UTC'."

@@ -1,0 +1,18 @@
+# Runtime Node
+
+# .github/dependabot.yml
+
+# First I set the version to 2
+version: 2
+
+updates:
+  # 1. updates for 'develop'
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "node"
+      - "update"

@@ -1,0 +1,40 @@
+<!-- Runtime-Node -->
+
+<!-- .github/assets/icon.svg -->
+
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+    <defs>
+        <radialGradient id="energyGradient" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#9cff3c"/>
+            <stop offset="40%" stop-color="#52d11f"/>
+            <stop offset="75%" stop-color="#2e9f15"/>
+            <stop offset="100%" stop-color="#1c6f0c"/>
+        </radialGradient>
+        <radialGradient id="glassHighlight" cx="35%" cy="30%" r="40%">
+            <stop offset="0%" stop-color="#fff" stop-opacity=".65"/>
+            <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="greenGlow" width="200%" height="200%" x="-50%" y="-50%">
+            <feGaussianBlur result="blur" stdDeviation="18"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <filter id="dropShadow" width="200%" height="200%" x="-50%" y="-50%">
+            <feDropShadow dx="0" dy="6" flood-color="#000" flood-opacity=".25" stdDeviation="10"/>
+        </filter>
+        <linearGradient id="metalGradient" x1="0%" x2="100%" y1="0%" y2="100%">
+            <stop offset="0%" stop-color="#f2f2f2"/>
+            <stop offset="25%" stop-color="#c8c8c8"/>
+            <stop offset="50%" stop-color="#9e9e9e"/>
+            <stop offset="75%" stop-color="#cfcfcf"/>
+            <stop offset="100%" stop-color="#f8f8f8"/>
+        </linearGradient>
+    </defs>
+    <path fill="none" stroke="url(#metalGradient)" stroke-linejoin="round" stroke-width="28" d="m256 60 164 95v200l-164 95-164-95V155z" filter="url(#dropShadow)"/>
+    <circle cx="256" cy="256" r="120" fill="url(#energyGradient)" filter="url(#greenGlow)"/>
+    <ellipse cx="256" cy="256" fill="none" stroke="#9cff3c" stroke-opacity=".4" stroke-width="3" rx="110" ry="40"/>
+    <ellipse cx="256" cy="256" fill="none" stroke="#9cff3c" stroke-opacity=".3" stroke-width="2" rx="90" ry="28"/>
+    <circle cx="256" cy="256" r="120" fill="url(#glassHighlight)"/>
+</svg>

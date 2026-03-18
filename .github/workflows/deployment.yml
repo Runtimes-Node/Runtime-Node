@@ -1,0 +1,222 @@
+# Runtime Node
+
+# .github/workflows/deployment.yml
+
+# I name the workflow "Release"
+name: Release
+
+on:
+  # Automatically trigger when a version tag is pushed.
+  # Any Git tag starting with "v" will start the build-and-publish job.
+  push:
+    tags:
+      - "v*"
+
+  # Manual trigger used to promote an existing versioned image
+  # to a floating tag (for example "latest" or "v1-latest").
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to promote (example: v2.2.0-25.8.0)'
+        required: true
+      promote_name:
+        description: 'Floating tag name to create (example: latest or v1.24-latest)'
+        required: true
+        default: 'latest'
+
+# Prevent multiple release workflows from running simultaneously for the same tag.
+concurrency:
+  group: release-${{ github.ref_name || github.event.inputs.tag }}
+  cancel-in-progress: true
+
+# Define minimal permissions required by the workflow.
+# contents:read → needed for checkout
+# packages:write → required to push images to GHCR
+permissions:
+  contents: read
+  packages: write
+
+# Global environment variables used across jobs.
+env:
+  IMAGE_NAME: runtime-node
+  DOCKERHUB_IMAGE: runtimenode/runtime-node
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/runtime-node
+
+jobs:
+  # This job builds the container image and publishes it to registries.
+  build-and-publish:
+    # Run only when the workflow was triggered by a Git tag push.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Checkout repository source code.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Enable QEMU to allow cross-platform builds (amd64 and arm64).
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Install and configure Docker Buildx for BuildKit features.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Automatically generate Docker image tags and OCI labels
+      # based on the Git tag that triggered the workflow.
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            # Only create tags derived from the Git tag.
+            # No floating tags (like "latest") are generated here.
+            type=ref,event=tag
+
+      # Authenticate to Docker Hub so the workflow can push images.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Authenticate to GitHub Container Registry.
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build the multi-platform container image and push it to both registries.
+      # BuildKit is used to generate SBOM and provenance metadata.
+      - name: Build and push (multi-registry, multi-platform)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # This job promotes an already published versioned image to a floating tag such as "latest".
+  promote-floating:
+    # Run only when manually triggered using workflow_dispatch.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+
+    steps:
+      # Install Docker Buildx to allow manipulation of image manifests.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Authenticate to Docker Hub.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Authenticate to GitHub Container Registry.
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Validate that the specified tag exists in GHCR before promotion.
+      - name: Validate remote images exist (GHCR)
+        id: check-ghcr
+        run: |
+          set -e
+          TAG="${{ github.event.inputs.tag }}"
+          GHCR_IMG="${{ env.GHCR_IMAGE }}:${TAG}"
+
+          echo "Checking GHCR image: $GHCR_IMG"
+
+          if ! docker buildx imagetools inspect "$GHCR_IMG" >/dev/null 2>&1; then
+            echo "GHCR image $GHCR_IMG not found or not accessible."
+            exit 1
+          fi
+
+          echo "Found GHCR image: $GHCR_IMG"
+
+      # Validate that the specified tag exists in Docker Hub.
+      - name: Validate remote images exist (Docker Hub)
+        id: check-dockerhub
+        run: |
+          set -e
+          TAG="${{ github.event.inputs.tag }}"
+          DOCKER_IMG="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TAG}"
+
+          echo "Checking Docker Hub image: $DOCKER_IMG"
+
+          if ! docker buildx imagetools inspect "$DOCKER_IMG" >/dev/null 2>&1; then
+            echo "Docker Hub image $DOCKER_IMG not found or not accessible."
+            exit 1
+          fi
+
+          echo "Found Docker Hub image: $DOCKER_IMG"
+
+      # Promote the versioned image to a floating tag in GHCR.
+      # This creates a new manifest that references the existing image.
+      - name: Promote — create floating manifest on GHCR
+        run: |
+          set -e
+
+          SRC_TAG="${{ github.event.inputs.tag }}"
+          TARGET="${{ github.event.inputs.promote_name }}"
+
+          SRC="ghcr.io/${{ github.repository_owner }}/runtime-node:${SRC_TAG}"
+          DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
+
+          echo "Creating manifest on GHCR: ${DEST} from ${SRC}"
+
+          docker buildx imagetools create --tag "${DEST}" "${SRC}"
+
+          echo "GHCR promotion complete: ${DEST}"
+
+      # Promote the versioned image to a floating tag in Docker Hub.
+      - name: Promote — create floating manifest on Docker Hub
+        run: |
+          set -e
+
+          SRC_TAG="${{ github.event.inputs.tag }}"
+          TARGET="${{ github.event.inputs.promote_name }}"
+
+          SRC="docker.io/${{ env.DOCKERHUB_IMAGE }}:${SRC_TAG}"
+          DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
+
+          echo "Creating manifest on Docker Hub: ${DEST} from ${SRC}"
+
+          docker buildx imagetools create --tag "${DEST}" "${SRC}"
+
+          echo "Docker Hub promotion complete: ${DEST}"
+
+      # Verify the promoted image manifest exists in GHCR.
+      - name: Verify promoted manifest (GHCR)
+        run: |
+          TARGET="${{ github.event.inputs.promote_name }}"
+          DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
+
+          echo "Inspecting $DEST"
+
+          docker buildx imagetools inspect "$DEST"
+
+      # Verify the promoted image manifest exists in Docker Hub.
+      - name: Verify promoted manifest (Docker Hub)
+        run: |
+          TARGET="${{ github.event.inputs.promote_name }}"
+          DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
+
+          echo "Inspecting $DEST"
+
+          docker buildx imagetools inspect "$DEST"
