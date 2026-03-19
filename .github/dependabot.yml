@@ -16,3 +16,20 @@ updates:
       - "dependencies"
       - "node"
       - "update"
+    
+  # 2. updates for 'develop-v1+node24'
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "develop-v1+node24"
+    schedule:
+      interval: "daily"
+    
+    ignore:
+      - dependency-name: "*"
+        update-types: 
+          - "version-update:semver-major"
+
+    labels:
+      - "dependencies"
+      - "node"
+      - "v1+node24-maintenance"
