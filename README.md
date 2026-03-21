@@ -70,7 +70,7 @@ These are the two primary size-focused official variants documented by the Node 
 
 ```bash
 # Pull the versioned published tag
-docker pull runtimenode/runtime-node:v<image_semver>+node<node_version>
+docker pull runtimenode/runtime-node:v<image_semver>-node<node_version>
 ```
 
 - Latest (Not Recommended for Production):
@@ -86,7 +86,7 @@ docker pull runtimenode/runtime-node:latest
 
 ```bash
 # Pull the versioned published tag
-docker pull ghcr.io/runtimes-node/runtime-node:v<image_semver>+node<node_version>
+docker pull ghcr.io/runtimes-node/runtime-node:v<image_semver>-node<node_version>
 ```
 
 - Latest (Not Recommended for Production):
@@ -111,7 +111,7 @@ COPY ./ ./
 RUN npm ci --omit=dev --no-cache
   
 # Use the same Node.js version as your builder stage base image
-FROM runtimenode/runtime-node:v<image_semver>+node<node_version>
+FROM runtimenode/runtime-node:v<amojor>.<minor>.<patch>-node<node_version>
 
 # Copy your production build artifacts only
 COPY --from=builder --chmod=555 dist/ /app/
@@ -175,7 +175,7 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<image_semver>+node<node_version>` (example: `v2.0.0+node25.8.1`)
+- `v<image_semver>+node<node_version>` (example: `v2.0.2+node25.8.1`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.

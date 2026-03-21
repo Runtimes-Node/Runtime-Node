@@ -117,6 +117,58 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Normalize the user-provided tag using the SAME logic as the build job.
+      - name: Normalize tag (match tag)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.tag }}
+
+      # Extract only the tag portion from metadata-action output of the tag.
+      - name: Extract normalized tag only
+        id: tag
+        run: |
+          set -e
+
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          FIRST_TAG=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
+
+          NORMALIZED_TAG="${FIRST_TAG##*:}"
+
+          echo "tag=${NORMALIZED_TAG}" >> $GITHUB_OUTPUT
+
+          echo "Normalized tag: ${NORMALIZED_TAG}"
+
+      # Normalize the user-provided promote name using the SAME logic as the build job.
+      - name: Normalize promote name (floating tag)
+        id: meta-promote
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.promote_name }}
+      
+      # Extract only the promote name portion from metadata-action output of the floating tag.
+      - name: Extract normalized promote tag
+        id: promote-tag
+        run: |
+          set -e
+
+          FULL_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          FIRST_TAG=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
+
+          NORMALIZED_TAG="${FIRST_TAG##*:}"
+
+          echo "tag=${NORMALIZED_TAG}" >> $GITHUB_OUTPUT
+
+          echo "Normalized promote tag: ${NORMALIZED_TAG}"
+
       # Authenticate to Docker Hub.
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -137,7 +189,7 @@ jobs:
         id: check-ghcr
         run: |
           set -e
-          TAG="${{ github.event.inputs.tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
           GHCR_IMG="${{ env.GHCR_IMAGE }}:${TAG}"
 
           echo "Checking GHCR image: $GHCR_IMG"
@@ -154,7 +206,7 @@ jobs:
         id: check-dockerhub
         run: |
           set -e
-          TAG="${{ github.event.inputs.tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
           DOCKER_IMG="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TAG}"
 
           echo "Checking Docker Hub image: $DOCKER_IMG"
@@ -172,8 +224,8 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ github.event.inputs.tag }}"
-          TARGET="${{ github.event.inputs.promote_name }}"
+          SRC_TAG="${{ steps.tag.outputs.tag }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
 
           SRC="ghcr.io/${{ github.repository_owner }}/runtime-node:${SRC_TAG}"
           DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
@@ -189,8 +241,8 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ github.event.inputs.tag }}"
-          TARGET="${{ github.event.inputs.promote_name }}"
+          SRC_TAG="${{ steps.tag.outputs.tag }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
 
           SRC="docker.io/${{ env.DOCKERHUB_IMAGE }}:${SRC_TAG}"
           DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
@@ -204,7 +256,7 @@ jobs:
       # Verify the promoted image manifest exists in GHCR.
       - name: Verify promoted manifest (GHCR)
         run: |
-          TARGET="${{ github.event.inputs.promote_name }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
           DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
 
           echo "Inspecting $DEST"
@@ -214,7 +266,7 @@ jobs:
       # Verify the promoted image manifest exists in Docker Hub.
       - name: Verify promoted manifest (Docker Hub)
         run: |
-          TARGET="${{ github.event.inputs.promote_name }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
           DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
 
           echo "Inspecting $DEST"
