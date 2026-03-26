@@ -1,6 +1,6 @@
 # Stage 1: Builder
 # Extract binaries, libraries, and generate configuration files.
-FROM node:24.14.0-alpine3.23 AS builder
+FROM node:24.14.1-alpine3.23 AS builder
 
 COPY --chmod=550 script.sh /
 COPY --chmod=550 dependencies/requirements.txt /dependencies/
