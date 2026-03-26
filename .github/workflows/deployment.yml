@@ -35,6 +35,7 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  deployments: write
 
 # Global environment variables used across jobs.
 env:
@@ -50,6 +51,23 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # Creating a GitHub Deployment environment to Production.
+      - name: Create GitHub Deployment
+        id: deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: production
+          description: "Deploying ${{ github.ref_name }}"
+
+      # Mark the deployment as in progress
+      - name: Mark deployment as in_progress
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: in_progress
+
       # Checkout repository source code.
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,6 +124,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Marking deployment as "success" if the workflow succeeds.
+      - name: Mark deployment as success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+
+      # Marking deployment as "failure" if the workflow fails.
+      - name: Mark deployment as failure
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: failure
+
   # This job promotes an already published versioned image to a floating tag such as "latest".
   promote-floating:
     # Run only when manually triggered using workflow_dispatch.
@@ -113,6 +149,23 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # Creating a GitHub Deployment environment to Promotion.
+      - name: Create GitHub Deployment
+        id: deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: promotion
+          description: "Promoting ${{ github.event.inputs.tag }} → ${{ github.event.inputs.promote_name }}"
+      
+      # Mark deployment as in_progress
+      - name: Mark deployment as in_progress
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: in_progress
+
       # Install Docker Buildx to allow manipulation of image manifests.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -272,3 +325,21 @@ jobs:
           echo "Inspecting $DEST"
 
           docker buildx imagetools inspect "$DEST"
+
+      # Marking deployment as "success" if the workflow succeeds.
+      - name: Mark deployment as success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+
+      # Marking deployment as "failure" if the workflow fails.
+      - name: Mark deployment as failure
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: failure
