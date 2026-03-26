@@ -122,7 +122,6 @@ jobs:
           provenance: true
           sbom: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # Marking deployment as "success" if the workflow succeeds.
       - name: Mark deployment as success
