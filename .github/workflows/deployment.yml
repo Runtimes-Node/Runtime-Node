@@ -35,6 +35,7 @@ concurrency:
 permissions:
   contents: read
   packages: write
+  deployments: write
 
 # Global environment variables used across jobs.
 env:
@@ -50,6 +51,23 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # Creating a GitHub Deployment environment to Production.
+      - name: Create GitHub Deployment
+        id: deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: production
+          description: "Deploying ${{ github.ref_name }}"
+
+      # Mark the deployment as in progress
+      - name: Mark deployment as in_progress
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: in_progress
+
       # Checkout repository source code.
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,6 +124,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Marking deployment as "success" if the workflow succeeds.
+      - name: Mark deployment as success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+
+      # Marking deployment as "failure" if the workflow fails.
+      - name: Mark deployment as failure
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: failure
+
   # This job promotes an already published versioned image to a floating tag such as "latest".
   promote-floating:
     # Run only when manually triggered using workflow_dispatch.
@@ -113,9 +149,78 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # Creating a GitHub Deployment environment to Promotion.
+      - name: Create GitHub Deployment
+        id: deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: promotion
+          description: "Promoting ${{ github.event.inputs.tag }} → ${{ github.event.inputs.promote_name }}"
+      
+      # Mark deployment as in_progress
+      - name: Mark deployment as in_progress
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: in_progress
+
       # Install Docker Buildx to allow manipulation of image manifests.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # Normalize the user-provided tag using the SAME logic as the build job.
+      - name: Normalize tag (match tag)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.tag }}
+
+      # Extract only the tag portion from metadata-action output of the tag.
+      - name: Extract normalized tag only
+        id: tag
+        run: |
+          set -e
+
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          FIRST_TAG=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
+
+          NORMALIZED_TAG="${FIRST_TAG##*:}"
+
+          echo "tag=${NORMALIZED_TAG}" >> $GITHUB_OUTPUT
+
+          echo "Normalized tag: ${NORMALIZED_TAG}"
+
+      # Normalize the user-provided promote name using the SAME logic as the build job.
+      - name: Normalize promote name (floating tag)
+        id: meta-promote
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ github.event.inputs.promote_name }}
+      
+      # Extract only the promote name portion from metadata-action output of the floating tag.
+      - name: Extract normalized promote tag
+        id: promote-tag
+        run: |
+          set -e
+
+          FULL_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          FIRST_TAG=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
+
+          NORMALIZED_TAG="${FIRST_TAG##*:}"
+
+          echo "tag=${NORMALIZED_TAG}" >> $GITHUB_OUTPUT
+
+          echo "Normalized promote tag: ${NORMALIZED_TAG}"
 
       # Authenticate to Docker Hub.
       - name: Login to Docker Hub
@@ -137,7 +242,7 @@ jobs:
         id: check-ghcr
         run: |
           set -e
-          TAG="${{ github.event.inputs.tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
           GHCR_IMG="${{ env.GHCR_IMAGE }}:${TAG}"
 
           echo "Checking GHCR image: $GHCR_IMG"
@@ -154,7 +259,7 @@ jobs:
         id: check-dockerhub
         run: |
           set -e
-          TAG="${{ github.event.inputs.tag }}"
+          TAG="${{ steps.tag.outputs.tag }}"
           DOCKER_IMG="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TAG}"
 
           echo "Checking Docker Hub image: $DOCKER_IMG"
@@ -172,8 +277,8 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ github.event.inputs.tag }}"
-          TARGET="${{ github.event.inputs.promote_name }}"
+          SRC_TAG="${{ steps.tag.outputs.tag }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
 
           SRC="ghcr.io/${{ github.repository_owner }}/runtime-node:${SRC_TAG}"
           DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
@@ -189,8 +294,8 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ github.event.inputs.tag }}"
-          TARGET="${{ github.event.inputs.promote_name }}"
+          SRC_TAG="${{ steps.tag.outputs.tag }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
 
           SRC="docker.io/${{ env.DOCKERHUB_IMAGE }}:${SRC_TAG}"
           DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
@@ -204,7 +309,7 @@ jobs:
       # Verify the promoted image manifest exists in GHCR.
       - name: Verify promoted manifest (GHCR)
         run: |
-          TARGET="${{ github.event.inputs.promote_name }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
           DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
 
           echo "Inspecting $DEST"
@@ -214,9 +319,27 @@ jobs:
       # Verify the promoted image manifest exists in Docker Hub.
       - name: Verify promoted manifest (Docker Hub)
         run: |
-          TARGET="${{ github.event.inputs.promote_name }}"
+          TARGET="${{ steps.promote-tag.outputs.tag }}"
           DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
 
           echo "Inspecting $DEST"
 
           docker buildx imagetools inspect "$DEST"
+
+      # Marking deployment as "success" if the workflow succeeds.
+      - name: Mark deployment as success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: success
+
+      # Marking deployment as "failure" if the workflow fails.
+      - name: Mark deployment as failure
+        if: failure()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: failure
