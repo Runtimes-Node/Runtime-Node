@@ -104,7 +104,6 @@ jobs:
           provenance: true
           sbom: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # This job promotes an already published versioned image to a floating tag such as "latest".
   promote-floating:
