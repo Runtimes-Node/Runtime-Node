@@ -241,8 +241,9 @@ jobs:
         id: check-ghcr
         run: |
           set -e
-          TAG="${{ steps.tag.outputs.tag }}"
-          GHCR_IMG="${{ env.GHCR_IMAGE }}:${TAG}"
+
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          GHCR_IMG=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
 
           echo "Checking GHCR image: $GHCR_IMG"
 
@@ -258,8 +259,9 @@ jobs:
         id: check-dockerhub
         run: |
           set -e
-          TAG="${{ steps.tag.outputs.tag }}"
-          DOCKER_IMG="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TAG}"
+          
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          DOCKER_IMG=$(echo "$FULL_TAGS" | grep "^docker.io/" | head -n1)
 
           echo "Checking Docker Hub image: $DOCKER_IMG"
 
@@ -276,11 +278,11 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ steps.tag.outputs.tag }}"
-          TARGET="${{ steps.promote-tag.outputs.tag }}"
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          SRC=$(echo "$FULL_TAGS" | grep "^ghcr.io/" | head -n1)
 
-          SRC="ghcr.io/${{ github.repository_owner }}/runtime-node:${SRC_TAG}"
-          DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
+          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^ghcr.io/" | head -n1)
 
           echo "Creating manifest on GHCR: ${DEST} from ${SRC}"
 
@@ -293,11 +295,11 @@ jobs:
         run: |
           set -e
 
-          SRC_TAG="${{ steps.tag.outputs.tag }}"
-          TARGET="${{ steps.promote-tag.outputs.tag }}"
+          FULL_TAGS="${{ steps.meta.outputs.tags }}"
+          SRC=$(echo "$FULL_TAGS" | grep "^docker.io/" | head -n1)
 
-          SRC="docker.io/${{ env.DOCKERHUB_IMAGE }}:${SRC_TAG}"
-          DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
+          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^docker.io/" | head -n1)
 
           echo "Creating manifest on Docker Hub: ${DEST} from ${SRC}"
 
@@ -308,8 +310,8 @@ jobs:
       # Verify the promoted image manifest exists in GHCR.
       - name: Verify promoted manifest (GHCR)
         run: |
-          TARGET="${{ steps.promote-tag.outputs.tag }}"
-          DEST="ghcr.io/${{ github.repository_owner }}/runtime-node:${TARGET}"
+          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^ghcr.io/" | head -n1)
 
           echo "Inspecting $DEST"
 
@@ -318,8 +320,8 @@ jobs:
       # Verify the promoted image manifest exists in Docker Hub.
       - name: Verify promoted manifest (Docker Hub)
         run: |
-          TARGET="${{ steps.promote-tag.outputs.tag }}"
-          DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${TARGET}"
+          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
+          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^docker.io/" | head -n1)
 
           echo "Inspecting $DEST"
 
