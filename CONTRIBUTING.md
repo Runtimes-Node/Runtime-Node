@@ -58,7 +58,7 @@ docker run --rm --entrypoint /usr/local/bin/node \
 
 ## Change Workflow
 
-1. Create a feature branch from `develop` (or a branch for backport version support like `develop/v1+node24` or etc.).
+1. Create a feature branch from `develop-v1+node24` for this maintenance line; release-ready changes then flow into `maintenance/v1+node24`.
 2. Make changes with the smallest possible surface area.
 3. Update documentation when behavior or defaults change.
 4. Open a pull request using the required PR template.
