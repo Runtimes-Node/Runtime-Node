@@ -260,8 +260,8 @@ jobs:
         run: |
           set -e
           
-          FULL_TAGS="${{ steps.meta.outputs.tags }}"
-          DOCKER_IMG=$(echo "$FULL_TAGS" | grep "^docker.io/" | head -n1)
+          TAG="${{ steps.tag.outputs.tag }}"
+          DOCKER_IMG="docker.io/${{ env.DOCKERHUB_IMAGE }}:$TAG"
 
           echo "Checking Docker Hub image: $DOCKER_IMG"
 
@@ -320,8 +320,8 @@ jobs:
       # Verify the promoted image manifest exists in Docker Hub.
       - name: Verify promoted manifest (Docker Hub)
         run: |
-          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
-          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^docker.io/" | head -n1)
+          TAG="${{ steps['promote-tag'].outputs.tag }}"
+          DEST=docker.io/${{ env.DOCKERHUB_IMAGE }}:$TAG
 
           echo "Inspecting $DEST"
 
