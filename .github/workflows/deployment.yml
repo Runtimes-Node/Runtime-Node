@@ -295,11 +295,11 @@ jobs:
         run: |
           set -e
 
-          FULL_TAGS="${{ steps.meta.outputs.tags }}"
-          SRC=$(echo "$FULL_TAGS" | grep "^docker.io/" | head -n1)
+          SRC_TAG="${{ steps.tag.outputs.tag }}"
+          DEST_TAG="${{ steps.promote-tag.outputs.tag }}"
 
-          FULL_PROMOTE_TAGS="${{ steps.meta-promote.outputs.tags }}"
-          DEST=$(echo "$FULL_PROMOTE_TAGS" | grep "^docker.io/" | head -n1)
+          SRC="docker.io/${{ env.DOCKERHUB_IMAGE }}:${SRC_TAG}"
+          DEST="docker.io/${{ env.DOCKERHUB_IMAGE }}:${DEST_TAG}"
 
           echo "Creating manifest on Docker Hub: ${DEST} from ${SRC}"
 
