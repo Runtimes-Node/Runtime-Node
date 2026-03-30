@@ -175,7 +175,7 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<image_semver>+node<node_version>` (example: `v2.1.2+node25.8.2`)
+- `v<image_semver>+node<node_version>` (example: `v2.1.3+node25.8.2`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.
