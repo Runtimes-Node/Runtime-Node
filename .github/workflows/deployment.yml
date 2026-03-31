@@ -95,7 +95,6 @@ jobs:
             type=ref,event=tag
           flavor: |
             latest=false
-            debug=false
 
       # Authenticate to Docker Hub so the workflow can push images.
       - name: Login to Docker Hub
@@ -184,7 +183,6 @@ jobs:
             type=raw,value=${{ github.event.inputs.tag }}
           flavor: |
             latest=false
-            debug=false
 
       # Extract only the tag portion from metadata-action output of the tag.
       - name: Extract normalized tag only
@@ -213,7 +211,6 @@ jobs:
             type=raw,value=${{ github.event.inputs.promote_name }}
           flavor: |
             latest=false
-            debug=false
       
       # Extract only the promote name portion from metadata-action output of the floating tag.
       - name: Extract normalized promote tag
