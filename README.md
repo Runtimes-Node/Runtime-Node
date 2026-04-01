@@ -10,7 +10,7 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/runtimenode/runtime-node?label=Docker%20Hub)](https://hub.docker.com/r/runtimenode/runtime-node)
 [![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2FRuntimes--Node%2Fruntime--node-blue)](https://github.com/Runtimes-Node/Runtime-Node/pkgs/container/runtime-node)
 [![Platforms](https://img.shields.io/badge/platforms-linux%2Famd64%20%7C%20linux%2Farm64-lightgrey)](https://hub.docker.com/r/runtimenode/runtime-node)
-[![Size](https://img.shields.io/badge/size-%7E45MB-green)](https://hub.docker.com/r/runtimenode/runtime-node)
+[![Size](https://img.shields.io/badge/size-%3C50MB-green)](https://hub.docker.com/r/runtimenode/runtime-node)
 [![Vulnerabilities](https://img.shields.io/badge/vulnerabilities-0-brightgreen)](https://hub.docker.com/r/runtimenode/runtime-node)
 
 </div>
@@ -70,7 +70,7 @@ These are the two primary size-focused official variants documented by the Node 
 
 ```bash
 # Pull the versioned published tag
-docker pull runtimenode/runtime-node:v<image_semver>+node<node_version>
+docker pull runtimenode/runtime-node:v<major>.<minor>.<patch>-node<node_version>
 ```
 
 - Latest (Not Recommended for Production):
@@ -86,7 +86,7 @@ docker pull runtimenode/runtime-node:latest
 
 ```bash
 # Pull the versioned published tag
-docker pull ghcr.io/runtimes-node/runtime-node:v<image_semver>+node<node_version>
+docker pull ghcr.io/runtimes-node/runtime-node:v<major>.<minor>.<patch>-node<node_version>
 ```
 
 - Latest (Not Recommended for Production):
@@ -102,7 +102,7 @@ docker pull ghcr.io/runtimes-node/runtime-node:latest
 
 ```Dockerfile
 # Use the same Node.js version as your final runtime stage base image
-FROM node:<node_version>-alpine AS builder
+FROM node:<node_version>-alpine3.23 AS builder
 
 WORKDIR /dist
 
@@ -111,7 +111,7 @@ COPY ./ ./
 RUN npm ci --omit=dev --no-cache
   
 # Use the same Node.js version as your builder stage base image
-FROM runtimenode/runtime-node:v<image_semver>+node<node_version>
+FROM runtimenode/runtime-node:v<major>.<minor>.<patch>-node<node_version>
 
 # Copy your production build artifacts only
 COPY --from=builder --chmod=555 dist/ /app/
@@ -175,10 +175,12 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<image_semver>+node<node_version>` (example: `v1.2.3+node24.14.1`)
+- `v<major>.<minor>.<patch>+node<node_version>` (example: `v1.2.4+node24.14.1`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.
+
+> Because of the `docker/metadata-action`, all tags with `+`, turns into `-` (example: GitHub Releases `v1.2.4+node24.14.1` then it becomes `v1.2.4-node24.14.1` in the Docker Hub and GitHub Container Registry)
 
 ## Security Posture
 
