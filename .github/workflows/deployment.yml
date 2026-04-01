@@ -93,6 +93,8 @@ jobs:
             # Only create tags derived from the Git tag.
             # No floating tags (like "latest") are generated here.
             type=ref,event=tag
+          flavor: |
+            latest=false
 
       # Authenticate to Docker Hub so the workflow can push images.
       - name: Login to Docker Hub
@@ -179,6 +181,8 @@ jobs:
             ${{ env.GHCR_IMAGE }}
           tags: |
             type=raw,value=${{ github.event.inputs.tag }}
+          flavor: |
+            latest=false
 
       # Extract only the tag portion from metadata-action output of the tag.
       - name: Extract normalized tag only
@@ -205,6 +209,8 @@ jobs:
             ${{ env.GHCR_IMAGE }}
           tags: |
             type=raw,value=${{ github.event.inputs.promote_name }}
+          flavor: |
+            latest=false
       
       # Extract only the promote name portion from metadata-action output of the floating tag.
       - name: Extract normalized promote tag
