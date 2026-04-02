@@ -36,6 +36,7 @@ permissions:
   contents: read
   packages: write
   deployments: write
+  id-token: write
 
 # Global environment variables used across jobs.
 env:
@@ -121,8 +122,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: true
-          sbom: true
+          attests: |
+            type=provenance,mode=max
+            type=sbom,mode=max
           cache-from: type=gha
 
       # Marking deployment as "success" if the workflow succeeds.
