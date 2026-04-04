@@ -175,12 +175,12 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<major>.<minor>.<patch>+node<node_version>` (example: `v1.2.4+node24.14.1`)
+- `v<major>.<minor>.<patch>+node<node_version>` (example: `v1.2.6+node24.14.1`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.
 
-> Because of the `docker/metadata-action`, all tags with `+`, turns into `-` (example: GitHub Releases `v1.2.4+node24.14.1` then it becomes `v1.2.4-node24.14.1` in the Docker Hub and GitHub Container Registry)
+> Because of the `docker/metadata-action`, all tags with `+`, turns into `-` (example: GitHub Releases `v1.2.6+node24.14.1` then it becomes `v1.2.6-node24.14.1` in the Docker Hub and GitHub Container Registry)
 
 ## Security Posture
 
@@ -244,6 +244,16 @@ Runtime Node exists because of a small set of outstanding open-source projects t
 [**docker/setup-buildx-action**](https://github.com/docker/setup-buildx-action) — GitHub Action used to configure Docker Buildx for advanced multi-platform build capabilities.
 
 [**actions/checkout**](https://github.com/actions/checkout) — GitHub Action used to check out the repository code in every workflow job.
+
+[**actions/upload-artifact**](https://github.com/actions/upload-artifact) — GitHub Action used to persist validation artifacts between workflow jobs.
+
+[**actions/download-artifact**](https://github.com/actions/download-artifact) — GitHub Action used to retrieve previously uploaded validation artifacts for later test steps.
+
+[**geekyeggo/delete-artifact**](https://github.com/geekyeggo/delete-artifact) — GitHub Action used to remove temporary workflow artifacts after validation completes.
+
+[**chrnorm/deployment-action**](https://github.com/chrnorm/deployment-action) — GitHub Action used to create GitHub Deployment records during release and promotion workflows.
+
+[**chrnorm/deployment-status**](https://github.com/chrnorm/deployment-status) — GitHub Action used to publish deployment state updates back to GitHub during release and promotion workflows.
 
 ### Contributors
 
