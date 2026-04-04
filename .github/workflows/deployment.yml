@@ -115,7 +115,7 @@ jobs:
       # Build the multi-platform container image and push it to both registries.
       # BuildKit is used to generate SBOM and provenance metadata.
       - name: Build and push (multi-registry, multi-platform)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
