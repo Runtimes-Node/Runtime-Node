@@ -175,7 +175,7 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<image_semver>+node<node_version>` (example: `v2.1.3+node25.8.2`)
+- `v<image_semver>+node<node_version>` (example: `v2.2.0+node25.9.0`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.
@@ -242,6 +242,16 @@ Runtime Node exists because of a small set of outstanding open-source projects t
 [**docker/setup-buildx-action**](https://github.com/docker/setup-buildx-action) — GitHub Action used to configure Docker Buildx for advanced multi-platform build capabilities.
 
 [**actions/checkout**](https://github.com/actions/checkout) — GitHub Action used to check out the repository code in every workflow job.
+
+[**actions/upload-artifact**](https://github.com/actions/upload-artifact) — GitHub Action used to persist build artifacts between workflow jobs during validation.
+
+[**actions/download-artifact**](https://github.com/actions/download-artifact) — GitHub Action used to retrieve previously uploaded build artifacts for later verification steps.
+
+[**geekyeggo/delete-artifact**](https://github.com/geekyeggo/delete-artifact) — GitHub Action used to clean up temporary workflow artifacts after validation completes.
+
+[**chrnorm/deployment-action**](https://github.com/chrnorm/deployment-action) — GitHub Action used to create GitHub Deployment records for release and promotion workflow runs.
+
+[**chrnorm/deployment-status**](https://github.com/chrnorm/deployment-status) — GitHub Action used to publish in-progress, success, and failure states back to the associated GitHub Deployment.
 
 ### Contributors
 
