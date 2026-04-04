@@ -57,22 +57,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Authenticate to Docker Hub so the workflow can push images to test.
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       # Build the Docker image and load it locally
       - name: Build Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: false
+          outputs: type=oci,dest=image.tar
           tags: runtimenode/test:pr-${{ github.event.pull_request.number }}
           cache-to: type=gha,mode=max
+
+      # Save the built image as an artifact for the Test Image job
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-pr-${{ github.event.pull_request.number }}
+          path: image.tar
 
   # Job to test the Docker image across multiple architectures
   test-image:
@@ -80,7 +81,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [lint, build-image]
     env:
-      TEST_IMAGE: runtimenode/test:pr-${{ github.event.pull_request.number }}
+      TEST_IMAGE: test:pr-${{ github.event.pull_request.number }}
     strategy:
       fail-fast: true
       matrix:
@@ -99,24 +100,37 @@ jobs:
       - name: Set up QEMU
         if: matrix.platform != 'linux/amd64'
         uses: docker/setup-qemu-action@v3
-      
-      # Authenticate to Docker Hub so the workflow can test the image.
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Pull the Docker image artifact built in the previous job
-      - name: Pull Docker Image Artifact
-        run: docker pull --platform ${{ matrix.platform }} ${{ env.TEST_IMAGE }}
+      # Download the built Docker image artifact from the Build Image job
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-pr-${{ github.event.pull_request.number }}
+          path: artifacts
+      
+      # Load the single-arch image into the local Docker daemon using Skopeo
+      - name: Extract single-arch image with Skopeo
+        run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}:/workspace" \
+            quay.io/skopeo/stable:v1.22.0 \
+            copy \
+            --override-os linux \
+            --override-arch "$ARCH" \
+            oci-archive:/workspace/artifacts/image.tar \
+            docker-daemon:${{ env.TEST_IMAGE }}-$ARCH
 
       # Smoke Test — verify node binary works
       - name: Smoke Test — node --version
         run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
           OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
             --entrypoint /usr/local/bin/node \
-            ${{ env.TEST_IMAGE }} \
+            ${{ env.TEST_IMAGE }}-$ARCH \
             --version)
 
           echo "Node.js version reported: $OUTPUT"
@@ -125,9 +139,11 @@ jobs:
       # Integrity Test — ensure no shell is present
       - name: Integrity Test — no shell present
         run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
           if docker run --rm --platform ${{ matrix.platform }} \
               --entrypoint /bin/sh \
-              ${{ env.TEST_IMAGE }} \
+              ${{ env.TEST_IMAGE }}-$ARCH \
               -c "echo shell_found" 2>/dev/null; then
             echo "❌ Shell was found inside the image. The distroless guarantee is broken."
             exit 1
@@ -136,10 +152,12 @@ jobs:
       # Integrity Test — ensure no package manager is present
       - name: Integrity Test — no package manager present
         run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
           for bin in /usr/bin/apk /usr/bin/apt /usr/bin/apt-get; do
             if docker run --rm --platform ${{ matrix.platform }} \
                 --entrypoint "$bin" \
-                ${{ env.TEST_IMAGE }} \
+                ${{ env.TEST_IMAGE }}-$ARCH \
                 --version 2>/dev/null; then
               echo "❌ Package manager found at $bin. The distroless guarantee is broken."
               exit 1
@@ -149,9 +167,11 @@ jobs:
       # Integrity Test — verify NODE_ENV is set to production
       - name: Integrity Test — NODE_ENV is production
         run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
           OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
             --entrypoint /usr/local/bin/node \
-            ${{ env.TEST_IMAGE }} \
+            ${{ env.TEST_IMAGE }}-$ARCH \
             -e "process.stdout.write(process.env.NODE_ENV || '')")
 
           [[ "$OUTPUT" == "production" ]] || exit 1
@@ -159,9 +179,29 @@ jobs:
       # Integrity Test — verify TZ is set to UTC
       - name: Integrity Test — TZ is UTC
         run: |
+          PLATFORM="${{ matrix.platform }}"
+          ARCH="${PLATFORM#linux/}"
           OUTPUT=$(docker run --rm --platform ${{ matrix.platform }} \
             --entrypoint /usr/local/bin/node \
-            ${{ env.TEST_IMAGE }} \
+            ${{ env.TEST_IMAGE }}-$ARCH \
             -e "process.stdout.write(process.env.TZ || '')")
 
           [[ "$OUTPUT" == "UTC" ]] || exit 1
+  
+  # Job to clean up the Docker image artifact after testing to free up storage space
+  artifact-clean-up:
+    name: Clean Up Artifacts
+    runs-on: ubuntu-24.04
+    needs: test-image
+    steps:
+      # Checkout the repository code for removing Artifact
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      
+      # Remove the Docker image artifact to free up storage space
+      - name: Remove Docker Image Artifact
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          name: docker-image-pr-${{ github.event.pull_request.number }}
