@@ -72,7 +72,7 @@ jobs:
       - name: Upload Docker Image Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-pr-${{ github.event.pull_request.number }}
           path: image.tar
 
   # Job to test the Docker image across multiple architectures
@@ -105,7 +105,7 @@ jobs:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-pr-${{ github.event.pull_request.number }}
           path: artifacts
       
       # Load the single-arch image into the local Docker daemon using Skopeo
@@ -204,4 +204,4 @@ jobs:
       - name: Remove Docker Image Artifact
         uses: geekyeggo/delete-artifact@v4
         with:
-          name: docker-image
+          name: docker-image-pr-${{ github.event.pull_request.number }}
