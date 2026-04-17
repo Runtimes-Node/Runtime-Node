@@ -175,12 +175,12 @@ Applications that need a different timezone can set `TZ` at runtime (timezone da
 ## Versioning and Tags
 
 Tags follow the pattern:
-- `v<major>.<minor>.<patch>+node<node_version>` (example: `v1.2.6+node24.14.1`)
+- `v<major>.<minor>.<patch>+node<node_version>` (example: `v1.3.0+node24.15.0`)
 - `latest` tracks the most recent release.
 
 Check the GitHub Releases page for the current tag and Node.js version.
 
-> Because of the `docker/metadata-action`, all tags with `+`, turns into `-` (example: GitHub Releases `v1.2.6+node24.14.1` then it becomes `v1.2.6-node24.14.1` in the Docker Hub and GitHub Container Registry)
+> Because of the `docker/metadata-action`, all tags with `+`, turns into `-` (example: GitHub Releases `v1.3.0+node24.15.0` then it becomes `v1.3.0-node24.15.0` in the Docker Hub and GitHub Container Registry)
 
 ## Security Posture
 
