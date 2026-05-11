@@ -33,3 +33,20 @@ updates:
       - "dependencies"
       - "node"
       - "v1+node24-maintenance"
+
+  # 3. updates for 'develop-v2+node25'
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "develop-v2+node25"
+    schedule:
+      interval: "daily"
+    
+    ignore:
+      - dependency-name: "*"
+        update-types: 
+          - "version-update:semver-major"
+
+    labels:
+      - "dependencies"
+      - "node"
+      - "v2+node25-maintenance"
