@@ -78,7 +78,7 @@ All pull requests must:
 
 ## Node.js Version Bumps
 
-Node.js version upgrades are tracked as versioned releases. Requests must include the official Alpine Node image tag (for example, `node:26.0.0-alpine3.23`) and are expected to trigger a semver release bump for the image.
+Node.js version upgrades are tracked as versioned releases. Requests must include the official Alpine Node image tag (for example, `node:26.1.0-alpine3.23`) and are expected to trigger a semver release bump for the image.
 
 ## Documentation Standards
 
